@@ -3,12 +3,15 @@
 This Github Repository adds support for **Defect Detection** Using [EDGE-AI-Model-Maker](https://github.com/TexasInstruments/edgeai-modelmaker) tool for TI Embedded Processor.
 
 ## 1. Defect Detection in Casting Product Image Data
-Dataset is of casting manufacturing product.\
+Dataset is of casting manufacturing product. These are top view of submersible pump impeller.\
 Casting is a manufacturing process in which a liquid material is usually poured into a mould, which contains a hollow cavity of the desired shape, and then allowed to solidify.\
 The Dataset is taken from the **Kaggle**. [link to dataset](https://www.kaggle.com/datasets/ravirajsinh45/real-life-industrial-dataset-of-casting-product)
 
 This project Uses **Semantic segmentation** for detecting the defect.\
 The pixel corresponding to Defective area will be colored. 
+
+![Defective and non defective Image](images/Defetive.png)
+
 
 
 ## 2. Setting Up Model Maker
@@ -112,7 +115,7 @@ Once The compilation is completed we can deploy the compiled model on the board.
 We have to copy `edgeai-modelmaker/data/projects/dataset_name/run/20230605-174227/fpn_aspp_regnetx800mf_edgeailite/compilation/TDA4VM/work/ss-8720` this folder to the board.
 The content of this file is shown in below picture.
 
-![Compiled model Directory](images/Compiled_model.png)
+![Compiled model Directory](images/model_directory.png)
 
 ### 5.a Connecting Board to PC using UART
 1. Install the [MobaXterm](https://mobaxterm.mobatek.net/download.html) to the PC to remotely connect to the Board.
@@ -151,7 +154,7 @@ After login when You go to the `/opt` the directory structure will be like this:
 
 ### 5.c Copying Downloaded model to the board
 
-We can use `scp` Command to copy the model from our PC to the borad.
+We can use `scp` Command to copy the model from our PC to the board.
 1. Open your terminal
 2. Go to the directory where Model is saved.
 3. Type the following command:
@@ -170,7 +173,7 @@ Before Importing Images to the board, Rename the images file sequentially.
 It will help in slide showing images on the screen.
 
 To copy the data to the board `scp` command can be used again.
-1. Go to the folder where image fovlder is located.
+1. Go to the folder where image folder is located.
 2. Type the below command.
 `scp -r image_folder_name root@ip_address_of_device:/opt/edgeai-test-data`
 3. Hit enter
@@ -181,7 +184,7 @@ To copy the data to the board `scp` command can be used again.
 ### 6.b Making Configuration file
 Next task is to make Configuration file for the project. 
 The config folder is located at `opt/edgeai-gst-apps/configs`
-(You can make a copy of the existing `.yaml` file and edit it or else you can make a new `.yaml` file.)
+(You can make a copy of the existing `.yaml` file and edit it or else you can write a new `.yaml` file.)
 
 **Component of config file**
 
@@ -281,7 +284,130 @@ To run the Model with python apps:
 2. Type `./app_edgeai.py ../configs/config_file_name.yaml` in Terminal and hit Enter.
 
 
-## 8. Post Processing
+## 8. Post Processing of defect detection
+
+Now I will do post processing of the result to get some more meaningful results. In this Post processing I will calculate the percentage defect in the the "submersible pump impeller".\
+Percentage defect = [defective area / ( defective area + non defective area )] * 100
+
+So for this count the pixel of defective area and non defective area.
+
+Post processing in python is located at: `opt/edgeai-gst-apps/apps_python/post_process.py`
+
+```
+class PostProcessSegmentation(PostProcess):
+    def __call__(self, img, results):
+        """
+        Post process function for segmentation
+        Args:
+            img: Input frame
+            results: output of inference
+        """
+        img = self.blend_segmentation_mask(img, results[0])
+
+        return img
+
+    def blend_segmentation_mask(self, frame, results):
+        """
+        Process the result of the semantic segmentation model and return
+        an image color blended with the mask representing different color
+        for each class
+        Args:
+            frame (numpy array): Input image in BGR format which should be blended
+            results (numpy array): Results of the model run
+        """
+
+        mask = np.squeeze(results)
+        
+        if len(mask.shape) > 2:
+            mask = mask[0]
+
+        if self.debug:
+            self.debug_str += str(mask.flatten()) + "\n"
+            self.debug.log(self.debug_str)
+            self.debug_str = ""
+
+        # Resize the mask to the original image for blending
+        org_image_rgb = frame
+        org_width = frame.shape[1]
+        org_height = frame.shape[0]
+        
+        # 1 in mask corresponds to defective pixel
+        # 0 in mask corresponds to Non defective pixel ( PUMP )
+        # 2 in mask corresponds to background 
+        num_defect=np.count_nonzero(mask == 1)
+        num_pump=np.count_nonzero(mask==0)
+        num_background=np.count_nonzero(mask==2)
+
+        defect_percentage=round(((num_defect*100)/(num_defect+num_pump)),2)
+        
+        mask_image_rgb = self.gen_segment_mask(mask)
+        
+        mask_image_rgb = cv2.resize(
+            mask_image_rgb, (org_width, org_height), interpolation=cv2.INTER_LINEAR
+        )
+
+        
+        blend_image = cv2.addWeighted(
+            mask_image_rgb, 1 - self.model.alpha, org_image_rgb, self.model.alpha, 0
+        )
+        
+
+        cv2.rectangle(
+            blend_image,
+            (0, 0),
+            (250, 30),
+            (255,255,255),
+            -1,
+        )
+
+        # for putting the Defective Percentage Text On the Result
+        cv2.putText(
+            blend_image,
+            "defect_percentage :"+str(defect_percentage),
+            (5, 20),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 0, 0),1,
+        )
+        
+        return blend_image
+
+    def gen_segment_mask(self, inp):
+        """
+        Generate the segmentation mask from the result of semantic segmentation
+        model. Creates an RGB image with different colors for each class.
+        Args:
+            inp (numpy array): Result of the model run
+        """
+        
+        #r_map = (inp * 10).astype(np.uint8)
+        #g_map = (inp * 20).astype(np.uint8)
+        #b_map = (inp * 30).astype(np.uint8)
+
+        r_map=np.copy(inp)
+        r_map[r_map==0]=255
+        
+        g_map=np.copy(inp)
+        g_map[g_map==1]=255
+        
+        b_map=np.copy(inp)
+        b_map[b_map==2]=255
+        
+        return cv2.merge((r_map, g_map, b_map))
+```
+
+- Number of defective and non defective pixel in mask can be counted by `np.count_nonzero`.
+
+- CV2.rectangle and CV2.putTest function can be used to put text on the image.
+
+- The color of the segmentation can be changed in `gen_segment_mask` function. The pixel corresponding to defect and pump and background can be changed to some other value to change the color of the mask.
+
+- After generating the segmentation mask it is blended with the real image.
 
 
 ## 9. Result
+
+![copying_images](images/output_image_0001.jpg)
+
+
+![copying_images](images\output_image_0003.jpg)
