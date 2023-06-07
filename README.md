@@ -410,4 +410,4 @@ class PostProcessSegmentation(PostProcess):
 ![copying_images](images/output_image_0001.jpg)
 
 
-![copying_images](images\output_image_0003.jpg)
+![copying_images](images/output_image_0003.jpg)
