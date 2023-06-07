@@ -26,13 +26,15 @@ Go to [this repository](https://github.com/TexasInstruments/edgeai-modelmaker) t
 a. edgeai-torchvision\
 b. edgeai-edgeai-mmdetection\
 c. edgeai-benchmark\
-d. edgeai-tidl-tools
+d. edgeai-model_zoo
 
 3. I used some specific branch of all 4 repository above because some branches was not working for me. The repo and their branches which i cloned are listed below. Just change these branches in `setup_all.sh` script.\
-a. edgeai-torchvision -> \
-b. edgeai-edgeai-mmdetection\
-c. edgeai-benchmark\
-d. edgeai-tidl-tools
+a. edgeai-torchvision -> `2023/badri-segmentation` \
+b. edgeai-edgeai-mmdetection -> `master`\
+c. edgeai-benchmark -> `badri-segmentation`\
+d. edgeai-model_zoo ->  `master`
+
+:o: Note : You can clone only one branch for faster installation.
 
 Follow each instructions in the Model-Maker Github Page to set up the Model Maker.
 
