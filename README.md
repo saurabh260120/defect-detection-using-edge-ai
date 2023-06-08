@@ -337,6 +337,9 @@ class PostProcessSegmentation(PostProcess):
         # 1 in mask corresponds to defective pixel
         # 0 in mask corresponds to Non defective pixel ( PUMP )
         # 2 in mask corresponds to background 
+
+        # Count number of all three types of pixel. The number of pixel of each type will be area of each type.
+
         num_defect=np.count_nonzero(mask == 1)
         num_pump=np.count_nonzero(mask==0)
         num_background=np.count_nonzero(mask==2)
@@ -383,18 +386,35 @@ class PostProcessSegmentation(PostProcess):
             inp (numpy array): Result of the model run
         """
         
-        #r_map = (inp * 10).astype(np.uint8)
-        #g_map = (inp * 20).astype(np.uint8)
-        #b_map = (inp * 30).astype(np.uint8)
+        # 1 in mask corresponds to defective pixel
+        # 0 in mask corresponds to Non defective pixel ( PUMP )
+        # 2 in mask corresponds to background
+
+        # Here we are generating the segmentation mask. 
+        # The mask contains 0,1,2 as the pixel value.
+        # So corresponding to each class we will assign a color.
+        # for example for 1 in mask correspond to defective pixel.
+        # We are replacing all "1" in Green channel of RGB by 255.
+        # And we are replacing "0" and "2" with 0 in green channel.
+        # So color of the defective pixel will be Green.
+
+        # Like wise We are doing with all classes.
 
         r_map=np.copy(inp)
         r_map[r_map==0]=255
+        r_map[r_map==1]=0
+        r_map[r_map==2]=0
         
+        # defective pixel will be Green
         g_map=np.copy(inp)
         g_map[g_map==1]=255
+        g_map[g_map==0]=0
+        g_map[g_map==2]=0
         
         b_map=np.copy(inp)
         b_map[b_map==2]=255
+        b_map[b_map==0]=0
+        b_map[b_map==1]=0
         
         return cv2.merge((r_map, g_map, b_map))
 ```
