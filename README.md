@@ -55,6 +55,11 @@ The annotation file must be in **COCO JSON** format.
 - After annotating the required images, go back to the "project page", by clicking on the project name displayed on top. From this page, we can export the annotation.
 - Export the annotation in COCO-JSON. 
 
+
+https://github.com/saurabh260120/defect-detection-using-edge-ai/assets/91410452/223357ad-ad04-46c9-b88d-588ad778f012
+
+
+
 ### 3.a Semantic Segmentation Dataset Format
 - The annotated JSON file and images must be under a suitable folder with the dataset name.
 - Under the folder with the dataset name, the following folders must exist:
