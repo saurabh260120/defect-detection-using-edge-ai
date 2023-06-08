@@ -97,6 +97,8 @@ compilation:
     calibration_iterations: 10
 ```
 
+
+
 After Setting up the configuration file go to the `edgeai-modelmaker` directory in the terminal and enter the following command and hit Enter.
 ```
 ./run_modelmaker.sh <target_device> config_segmentation.yaml
@@ -402,6 +404,8 @@ class PostProcessSegmentation(PostProcess):
 
 
 ## 9. Result
+
+https://github.com/saurabh260120/defect-detection-using-edge-ai/assets/91410452/bedce5fa-421b-4052-90a5-adc48eacdd14
 
 ![copying_images](images/output_image_0001.jpg)
 
